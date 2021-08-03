@@ -1,0 +1,14 @@
+#!/bin/bash
+# 获取 PID
+PID=$(ps -ef | grep rocketmq-console | grep -v grep | awk '{print $2}')
+
+# 强制停止服务
+if [ "X${PID}" != "X" ]; then
+    kill -9 ${PID}
+fi
+
+# 后台启动
+nohup java -jar {{ rocketmq_console_home_path }}/{{ rocketmq_console_file }} --rocketmq.config.namesrvAddr='{{ rocketmq_namesrvAddr }}' --rocketmq.config.dataPath={{ rocketmq_console_home_path }}/data -Drocketmq.client.logRoot={{ rocketmq_console_home_path }}/logs -Drocketmq.client.logLevel=ERROR --server.port={{ rocketmq_console_server_port }} >console.log 2>&1 &
+
+# 监控 log
+tail -f console.log

@@ -1,0 +1,110 @@
+---
+- name: Create redis group.
+  group:
+    name: "{{ redis_user }}"
+
+- name: Create redis user
+  user:
+    name: "{{ redis_user }}"
+    group: "{{ redis_user }}"
+    shell: /sbin/nologin
+
+- name: Copy redis file to agent
+  unarchive:
+    src: "{{ redis_file }}"
+    dest: "{{ software_install_path }}"
+    creates: "{{ redis_home_path }}"
+    owner: "{{ redis_user }}"
+    group: "{{ redis_user }}"
+
+- name: Ensure gcc packages are installed
+  yum:
+    name: ['gcc', 'gcc-c++', 'libtool', 'make']
+    state: installed
+
+- name: Build redis
+  shell: "cd {{ redis_home_path }} && make"
+
+- name: Set redis path
+  template:
+    src: redis.sh.j2
+    dest: "{{ etc_profile_path }}/redis.sh"
+    mode: 0644
+
+- name: Source {{ etc_profile_path }}/redis.sh
+  shell: "source {{ etc_profile_path }}/redis.sh"
+
+- name: Set vm.overcommit_memory to 1 in /etc/sysctl.conf
+  sysctl:
+   name: vm.overcommit_memory
+   value: '1'
+   state: present
+
+- name: TCP backlog setting of 512
+  shell: echo 512 > /proc/sys/net/core/somaxconn
+
+- name: Shutdown transparent_hugepage
+  shell: "echo never > {{ item }}"
+  with_items:
+    - /sys/kernel/mm/transparent_hugepage/enabled
+    - /sys/kernel/mm/transparent_hugepage/defrag
+
+- name: Set transparent_hugepage is never to /etc/rc.local
+  lineinfile: "dest=/etc/rc.local line=echo never > {{ item }}"
+  with_items:
+    - /sys/kernel/mm/transparent_hugepage/enabled
+    - /sys/kernel/mm/transparent_hugepage/defrag
+
+- name: Set data directory for 8001
+  file:
+    path: "{{ redis_home_path }}/{{ item }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_user }}"
+    recurse: yes
+  with_items:
+    - data/8001
+    - redis-cluster/8001
+    - logs
+
+- name: Set data directory for 8002
+  file:
+    path: "{{ redis_home_path }}/{{ item }}"
+    state: directory
+    owner: "{{ redis_user }}"
+    group: "{{ redis_user }}"
+    recurse: yes
+  with_items:
+    - data/8002
+    - redis-cluster/8002
+  when: redis_nodes == 3
+
+- name: Ensure Redis Cluster 8001 is configured
+  template:
+    src: redis-8001.conf.j2
+    dest: "{{ redis_home_path }}/redis-cluster/8001/redis.conf"
+    mode: 0644
+    owner: "{{ redis_user }}"
+    group: "{{ redis_user }}"
+
+- name: Ensure Redis Cluster 8002 is configured
+  template:
+    src: redis-8002.conf.j2
+    dest: "{{ redis_home_path }}/redis-cluster/8002/redis.conf"
+    mode: 0644
+    owner: "{{ redis_user }}"
+    group: "{{ redis_user }}"
+  when: redis_nodes == 3
+
+- name: Start redis 8001
+  shell: "source /etc/profile;nohup {{ redis_home_path }}/src/redis-server {{ redis_home_path }}/redis-cluster/8001/redis.conf &"
+  become: true
+  become_user: "{{ redis_user }}"
+  tags: redis-start
+
+- name: Start redis 8002
+  shell: "source /etc/profile;nohup {{ redis_home_path }}/src/redis-server {{ redis_home_path }}/redis-cluster/8002/redis.conf &"
+  become: true
+  become_user: "{{ redis_user }}"
+  when: redis_nodes == 3
+  tags: redis-start

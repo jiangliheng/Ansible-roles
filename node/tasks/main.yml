@@ -1,0 +1,27 @@
+---
+    
+- name: Copy Node to remote host /tmp.
+  copy: "src={{ node_file }} dest=/tmp"
+
+- name: Unzip Node file.
+  unarchive:
+    src: "/tmp/{{ node_file }}"
+    dest: "{{ software_install_path }}"
+    owner: root
+    group: root
+    copy: no
+
+- name: Set NODE_HOME.
+  template:
+    src: node_home.sh.j2
+    dest: "{{ etc_profile_path }}/node_home.sh"
+    mode: 0644
+
+- name: Source {{ etc_profile_path }}/node_home.sh.
+  shell: "source {{ etc_profile_path }}/node_home.sh"
+
+- name: Node && NPM version.
+  shell: node -v && npm -v
+
+- name: Remove files.
+  file: "path=/tmp/{{ node_file }} state=absent"

@@ -1,0 +1,19 @@
+[Unit]
+Description=Minio Server
+After=network.target
+
+[Service]
+Type=forking
+User=minio
+Group=minio
+ExecStart=/home/{{ minio_user }}/minio.sh start
+ExecReload=/home/{{ minio_user }}/minio.sh restart
+ExecStop=/home/{{ minio_user }}/minio.sh stop
+PrivateTmp=true
+
+# Restart 配置可以在进程被 kill 掉之后，让 systemctl 产生新的进程，避免服务挂掉
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

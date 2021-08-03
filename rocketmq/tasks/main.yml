@@ -1,0 +1,158 @@
+---
+- name: Create mq group
+  group: name={{ rocketmq_user }}
+
+- name: Create mq user
+  user: name={{ rocketmq_user }} group={{ rocketmq_user }} password={{ rocketmq_user_passwd }} shell=/bin/bash state=present home=/home/{{ rocketmq_user }} createhome=yes
+
+- name: Copy rocketmq file to agent
+  unarchive:
+    src: "{{ rocketmq_file }}"
+    dest: "{{ software_install_path }}"
+    creates: "{{ rocketmq_home_path }}"
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+
+- name: Set rocketmq path
+  template:
+    src: rocketmq.sh.j2
+    dest: "{{ etc_profile_path }}/rocketmq.sh"
+    mode: 0644
+
+- name: Source {{ etc_profile_path }}/rocketmq.sh
+  shell: "source {{ etc_profile_path }}/rocketmq.sh"
+
+- name: Execute os.sh
+  shell: "{{ rocketmq_home_path }}/bin/os.sh"
+
+- name: Mkdir rocketmq logs
+  file:
+    path: "{{ rocketmq_logs_path }}"
+    state: directory
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+    mode: 0755
+
+- name: Ensure rocketmq logback is configured
+  replace:
+    path: "{{ rocketmq_conf_path }}/{{ item }}"
+    regexp: '\${user.home}\/logs\/rocketmqlogs'
+    replace: '${ROCKETMQ_HOME}/logs'
+  with_items:
+    - logback_broker.xml
+    - logback_namesrv.xml
+    - logback_tools.xml
+
+- name: Ensure rocketmq broker is configured
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ rocketmq_conf_path }}/2m-2s-async/{{ item }}"
+    mode: 0644
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+  with_items:
+    - broker-a.properties
+    - broker-a-s.properties
+    - broker-b.properties
+    - broker-b-s.properties
+    - broker-c.properties
+    - broker-c-s.properties
+
+- name: Start rocketmq mqnamesrv
+  shell: |
+      source /etc/profile;nohup sh {{ rocketmq_home_path }}/bin/mqnamesrv > {{ rocketmq_logs_path }}/namesrv.out 2>&1 &
+      sleep 5
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  when: inventory_hostname in [rocketmq_brokerIP1_a,rocketmq_brokerIP1_b,rocketmq_brokerIP1_c]
+  tags: rocketmq-start
+
+- name: Install tmux
+  yum:
+    name: tmux
+    state: latest
+
+- name: Start rocketmq broker-a
+  shell: |
+      tmux kill-session -t mq-{{ item }}
+      cd {{ rocketmq_home_path }}
+      tmux new -s mq-{{ item }} -d
+      tmux send -t mq-{{ item }} "nohup sh {{ rocketmq_home_path }}/bin/mqbroker -c {{ rocketmq_conf_path }}/2m-2s-async/{{ item }}.properties -n '{{ rocketmq_namesrvAddr }}' > {{ rocketmq_logs_path }}/{{ item }}.out 2>&1 &" ENTER
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  with_items:
+    - broker-a
+  when: inventory_hostname == rocketmq_brokerIP1_a
+  tags: rocketmq-start
+
+- name: Start rocketmq broker-b
+  shell: |
+      tmux kill-session -t mq-{{ item }}
+      cd {{ rocketmq_home_path }}
+      tmux new -s mq-{{ item }} -d
+      tmux send -t mq-{{ item }} "nohup sh {{ rocketmq_home_path }}/bin/mqbroker -c {{ rocketmq_conf_path }}/2m-2s-async/{{ item }}.properties -n '{{ rocketmq_namesrvAddr }}' > {{ rocketmq_logs_path }}/{{ item }}.out 2>&1 &" ENTER
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  with_items:
+    - broker-b
+  when: inventory_hostname == rocketmq_brokerIP1_b
+  tags: rocketmq-start
+
+- name: Start rocketmq broker-c
+  shell: |
+      tmux kill-session -t mq-{{ item }}
+      cd {{ rocketmq_home_path }}
+      tmux new -s mq-{{ item }} -d
+      tmux send -t mq-{{ item }} "nohup sh {{ rocketmq_home_path }}/bin/mqbroker -c {{ rocketmq_conf_path }}/2m-2s-async/{{ item }}.properties -n '{{ rocketmq_namesrvAddr }}' > {{ rocketmq_logs_path }}/{{ item }}.out 2>&1 &" ENTER
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  with_items:
+    - broker-c
+  when: inventory_hostname == rocketmq_brokerIP1_c
+  tags: rocketmq-start
+
+- name: Start rocketmq broker-a-s
+  shell: |
+      tmux kill-session -t mq-{{ item }}
+      cd {{ rocketmq_home_path }}
+      tmux new -s mq-{{ item }} -d
+      tmux send -t mq-{{ item }} "nohup sh {{ rocketmq_home_path }}/bin/mqbroker -c {{ rocketmq_conf_path }}/2m-2s-async/{{ item }}.properties -n '{{ rocketmq_namesrvAddr }}' > {{ rocketmq_logs_path }}/{{ item }}.out 2>&1 &" ENTER
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  with_items:
+    - broker-a-s
+  when: inventory_hostname == rocketmq_brokerIP1_as
+  tags: rocketmq-start
+
+- name: Start rocketmq broker-b-s
+  shell: |
+      tmux kill-session -t mq-{{ item }}
+      cd {{ rocketmq_home_path }}
+      tmux new -s mq-{{ item }} -d
+      tmux send -t mq-{{ item }} "nohup sh {{ rocketmq_home_path }}/bin/mqbroker -c {{ rocketmq_conf_path }}/2m-2s-async/{{ item }}.properties -n '{{ rocketmq_namesrvAddr }}' > {{ rocketmq_logs_path }}/{{ item }}.out 2>&1 &" ENTER
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  with_items:
+    - broker-b-s
+  when: inventory_hostname == rocketmq_brokerIP1_bs
+  tags: rocketmq-start
+
+- name: Start rocketmq broker-c-s
+  shell: |
+      tmux kill-session -t mq-{{ item }}
+      cd {{ rocketmq_home_path }}
+      tmux new -s mq-{{ item }} -d
+      tmux send -t mq-{{ item }} "nohup sh {{ rocketmq_home_path }}/bin/mqbroker -c {{ rocketmq_conf_path }}/2m-2s-async/{{ item }}.properties -n '{{ rocketmq_namesrvAddr }}' > {{ rocketmq_logs_path }}/{{ item }}.out 2>&1 &" ENTER
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  with_items:
+    - broker-c-s
+  when: inventory_hostname == rocketmq_brokerIP1_cs
+  tags: rocketmq-start

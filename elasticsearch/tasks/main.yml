@@ -1,0 +1,89 @@
+---
+- name: Create es group
+  group: name={{ es_group }}
+
+- name: Create es user
+  user: name={{ es_user }} group={{ es_group }} password={{ es_user_passwd }} shell=/bin/bash state=present home=/home/{{ es_user }} createhome=yes
+
+- name: Copy es file to agent
+  unarchive:
+    src: "{{ es_file }}"
+    dest: "{{ software_install_path }}"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    creates: "{{ es_home_path }}"
+
+- name: Check if es remote soft link is already configured
+  stat: path={{ es_home_path }}
+  register: es_soft_link_result
+
+- name: Set the owner of the es directory
+  file: path={{ es_home_path }} state=directory owner={{ es_user }} group={{ es_group }} recurse=yes
+  when: not es_soft_link_result.stat.exists
+
+- name: Set Maximum map count
+  sysctl:
+   name: vm.max_map_count
+   value: "{{ es_max_map_count }}"
+   state: present
+
+- name: Set vm swappiness to 1
+  sysctl:
+   name: vm.swappiness
+   value: '1'
+   state: present
+
+- name: Disable all swap files
+  shell: swapoff -a
+  become: yes
+
+# - name: Change nofile limits
+#   lineinfile: dest=/etc/security/limits.conf line={{ item }}
+#   with_items:
+#     - "*  soft  memlock  unlimited"
+#     - "*  hard  memlock  unlimited"
+#     - "*  soft nofile {{ es_max_open_files }}"
+#     - "*  hard nofile {{ es_max_open_files }}"
+#     - "*  soft  nproc  {{ es_max_processes }}"
+#     - "*  hard  nproc  {{ es_max_processes }}"
+
+- name: Create es required Directory
+  file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ es_user }}"
+      group: "{{ es_group }}"
+      mode: 0755
+  with_items:
+   - "{{ es_pid_dir }}"
+   - "{{ es_log_dir }}"
+   - "{{ es_data_dir }}"
+   - "{{ es_conf_dir }}"
+
+- name: Configure Elasticsearch
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ es_conf_dir }}/{{ item }}"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+    mode: 0644
+  with_items:
+    - elasticsearch.yml
+    - jvm.options
+
+- name: Copy elasticsearch-sql plugin
+  unarchive:
+    src: "{{ es_plugin_sql }}"
+    dest: "{{ es_plugins_dir }}"
+    owner: "{{ es_user }}"
+    group: "{{ es_group }}"
+
+- name: Set es jdk
+  shell: 'sed -i "s#\$JAVA_HOME\/bin\/java#\$ES_HOME\/jdk\/bin\/java#g" {{ es_home_path }}/bin/elasticsearch-env'
+  become: true
+  become_user: "{{ es_user }}"
+
+- name: Start elasticsearch
+  shell: "source /etc/profile;nohup {{ es_home_path }}/bin/elasticsearch -d & "
+  become: true
+  become_user: "{{ es_user }}"

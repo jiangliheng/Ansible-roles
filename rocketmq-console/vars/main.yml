@@ -1,0 +1,23 @@
+---
+software_install_path: "/home/{{ rocketmq_user }}"
+
+rocketmq_conf_path: "{{ rocketmq_home_path }}/conf"
+rocketmq_logs_path: "{{ rocketmq_home_path }}/logs"
+
+rocketmq_user: mq
+rocketmq_user_passwd: "{{ 'mq@1234' | password_hash('sha512') }}"
+
+# rocketmq console 部署服务器
+rocketmq_console_host1: mon1
+rocketmq_console_host2: mon2
+
+rocketmq_namesrvAddr: "mq1:9876;mq2:9876;mq3:9876"
+
+# rocketmq_console
+rocketmq_console_version: 2.0.0
+rocketmq_console_file: "rocketmq-console-ng-{{ rocketmq_console_version }}.jar"
+rocketmq_console_home_path: "{{ software_install_path }}/rocketmq-console-ng-{{ rocketmq_console_version }}"
+rocketmq_console_server_port: 9080
+
+# rocketmq_console -- users.properties
+rocketmq_console_admin: "mq_admin=mq@1234"

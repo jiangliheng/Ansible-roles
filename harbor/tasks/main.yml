@@ -1,0 +1,78 @@
+---
+- name: Create a software file directory on the node
+  file: path={{ item }} state=directory
+  with_items:
+    - "{{ harbor_home }}"
+    - "{{ harbor_ssl_home }}"
+
+- name: Copy the harbor file to the node
+  unarchive:
+    src: "{{ harbor_file }}"
+    dest: "{{ software_files_path }}"
+
+- name: Make ssl
+  shell: |
+    openssl genrsa -out ca.key 4096
+    openssl req -x509 -new -nodes -sha512 -days 3650 -subj "/C=CN/ST=Beijing/L=Beijing/O=example/OU=Personal/CN={{ harbor_hostname }}" -key ca.key -out ca.crt
+
+    openssl genrsa -out {{ harbor_hostname }}.key 4096
+    openssl req -sha512 -new -subj "/C=CN/ST=Beijing/L=Beijing/O=example/OU=Personal/CN={{ harbor_hostname }}" -key {{ harbor_hostname }}.key -out {{ harbor_hostname }}.csr
+
+    cat > v3.ext <<-EOF
+    authorityKeyIdentifier=keyid,issuer
+    basicConstraints=CA:FALSE
+    keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+    extendedKeyUsage = serverAuth
+    subjectAltName = @alt_names
+
+    [alt_names]
+    IP.1 = {{ ansible_ssh_host }}
+    DNS.1= {{ harbor_hostname }}
+    EOF
+
+    openssl x509 -req -sha512 -days 3650 -extfile v3.ext -CA ca.crt -CAkey ca.key -CAcreateserial -in {{ harbor_hostname }}.csr -out {{ harbor_hostname }}.crt
+  args:
+    chdir: "{{ harbor_ssl_home }}"
+
+- name: Make docker
+  shell: |
+    openssl x509 -inform PEM -in {{ harbor_hostname }}.crt -out {{ harbor_hostname }}.cert
+    mkdir -p /etc/docker/certs.d/{{ harbor_hostname }}
+    cp {{ harbor_hostname }}.cert /etc/docker/certs.d/{{ harbor_hostname }}
+    cp {{ harbor_hostname }}.key /etc/docker/certs.d/{{ harbor_hostname }}
+    cp ca.crt /etc/docker/certs.d/{{ harbor_hostname }}
+  args:
+    chdir: "{{ harbor_ssl_home }}"
+
+- name: Configuration daemon.json
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+
+- name: restart docker daemon
+  systemd: name=docker state=restarted enabled=yes
+
+- name: Copy harbor.yml.tmpl to harbor.yml
+  copy:
+    src: "{{ harbor_home }}/harbor.yml.tmpl"
+    dest: "{{ harbor_home }}/harbor.yml"
+    remote_src: true
+
+- name: Modify harbor.yml
+  replace: path={{ harbor_home }}/harbor.yml regexp={{ item.r }} replace={{ item.s }}
+  with_items:
+   - { r: "hostname: reg.mydomain.com", s: "hostname: {{ harbor_hostname }}"}
+   - { r: "/your/certificate/path", s: "{{ harbor_ssl_certificate }}"}
+   - { r: "/your/private/key/path", s: "{{ harbor_ssl_private_key }}"}
+   - { r: "Harbor12345", s: "{{ harbor_admin_password }}"}
+   - { r: "root123", s: "{{ harbor_db_password }}"}
+
+- name: Run prepare
+  shell: |
+    mkdir -p /data
+    {{ harbor_home }}/prepare
+
+- name: Install and start Harbor
+  shell: "sudo ./install.sh --with-notary --with-trivy --with-chartmuseum"
+  args:
+   chdir: "{{ harbor_home }}"

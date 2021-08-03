@@ -1,0 +1,32 @@
+---
+- name: Create nacos group
+  group: "name={{ nacos_group }}"
+
+- name: Create nacos user.
+  user: "name={{ nacos_user }} group={{ nacos_group }} password={{ nacos_user_passwd }} shell=/bin/bash state=present home=/home/{{ nacos_user }} createhome=yes"
+
+- name: Unzip nacos file
+  unarchive:
+    src: "{{ nacos_file }}"
+    dest: "{{ software_install_path }}"
+    owner: "{{ nacos_user }}"
+    group: "{{ nacos_group }}"
+
+- name: Set the owner of the nacos directory.
+  file: path={{ nacos_home_path }} state=directory owner={{ nacos_user }} group={{ nacos_group }} recurse=yes
+
+- name: Configure nacos
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ nacos_home_path }}/conf/{{ item }}"
+    owner: "{{ nacos_user }}"
+    group: "{{ nacos_group }}"
+    mode: 0644
+  with_items:
+    - application.properties
+    - cluster.conf
+
+- name: Start nacos
+  shell: "source /etc/profile;sh {{ nacos_home_path }}/bin/startup.sh &"
+  become: true
+  become_user: "{{ nacos_user }}"

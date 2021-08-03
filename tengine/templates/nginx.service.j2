@@ -1,0 +1,18 @@
+[Unit]
+Description=nginx
+After=network.target
+
+[Service]
+Type=forking
+ExecStartPre={{ nginx_home_path }}/sbin/nginx -t
+ExecStart={{ nginx_home_path }}/sbin/nginx
+ExecReload={{ nginx_home_path }}/sbin/nginx -s reload
+ExecStop={{ nginx_home_path }}/sbin/nginx -s quit
+PrivateTmp=true
+
+# Restart 配置可以在进程被 kill 掉之后，让 systemctl 产生新的进程，避免服务挂掉
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

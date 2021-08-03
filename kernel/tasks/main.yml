@@ -1,0 +1,30 @@
+---
+- name: Import the public key
+  shell: "rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org"
+
+#  yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+#  cd /etc/yum.repos.d/
+#  sed -i "s/mirrorlist=/#mirrorlist=/g" elrepo.repo
+#  sed -i "s#elrepo.org/linux#mirrors.tuna.tsinghua.edu.cn/elrepo#g" elrepo.repo
+- name: Set ELRepo
+  copy:
+    src: "etc/yum.repos.d/elrepo.repo"
+    dest: /etc/yum.repos.d/
+    mode: '0644'
+
+- name: Yum makecache
+  shell: "yum makecache"
+
+- name: Update centos kernel-ml
+  shell: "yum --enablerepo=elrepo-kernel install kernel-ml -y"
+
+# 查看可用内核版本及启动顺序
+# awk -F\' '$1=="menuentry " {print i++ " : " $2}' /boot/grub2/grub.cfg
+# # 查看启动顺序
+# grub2-editenv list
+# grub2-set-default 0
+# grub2-mkconfig -o /boot/grub2/grub.cfg
+- name: Set default kernel
+  shell: |
+    yum install -y grub2-pc
+    grub2-set-default 0

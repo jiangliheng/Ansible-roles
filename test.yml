@@ -1,0 +1,257 @@
+---
+# 服务器初始化
+- hosts: all
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 修改 hostname
+    - name: Set hostname
+      import_role:
+        name: hostname
+      tags: hostname
+    # yum 源设置
+    - name: Set yum
+      import_role:
+        name: yum
+      tags: yum
+    # 升级 centos 内核
+    - name: Centos update kernel
+      import_role:
+        name: kernel
+      tags: kernel
+    # 时钟同步
+    - name: Set chrony
+      import_role:
+        name: chrony
+      tags: chrony
+    # centos 基础初始化配置（设置dns、关闭selinux、关闭防火墙、内核参数调整、vim 配置、中文环境配置、基础工具包安装、常用别名、历史命令记录设置等）
+    - name: Centos init
+      import_role:
+        name: init
+      tags: init
+    # 安装 Orcale JDK8
+    - name: Install Orcale JDK8
+      import_role:
+        name: oracle-jdk8
+      tags: jdk
+    # 设置用户
+    - name: Create users
+      import_role:
+        name: users
+      tags: users
+    # 安装 docker
+    - name: Install docker
+      import_role:
+        name: docker
+      tags: docker
+
+# 安装 tengine
+- hosts:
+    - in
+    - mon
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 安装 tengine
+    - name: Install tengine
+      import_role:
+        name: tengine
+      tags: tengine
+
+
+# clickhouse 中间件安装
+- hosts: ch
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 安装 clickhouse
+    - name: Install clickhouse cluster
+      import_role:
+        name: clickhouse
+      tags: clickhouse
+
+
+# elasticsearch 中间件安装
+- hosts: es
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 禁用 swap
+    - name: Disable swap
+      shell: |
+        swapoff -a
+        sysctl -w vm.swappiness=0
+        sed -ri '/^[^#]*swap/s@^@#@' /etc/fstab
+      tags: swap
+    # 安装 elasticsearch
+    - name: Install elasticsearch cluster
+      import_role:
+        name: elasticsearch
+      tags: elasticsearch
+
+
+# redis、mq 中间件安装
+- hosts: mq
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 禁用 swap
+    - name: Disable swap
+      shell: |
+        swapoff -a
+        sysctl -w vm.swappiness=0
+        sed -ri '/^[^#]*swap/s@^@#@' /etc/fstab
+      tags: swap
+    # 安装 redis
+    - name: Install redis cluster
+      import_role:
+        name: redis
+      vars:
+        # 6个节点
+        redis_nodes: 6
+      tags: redis
+    # 安装 rocketmq
+    - name: Install rocketmq
+      import_role:
+        name: rocketmq
+      vars:
+        # 6个节点
+        rocketmq_nodes: 6
+        # 服务器定义
+        rocketmq_node1: mq1
+        rocketmq_node2: mq2
+        rocketmq_node3: mq3
+        rocketmq_node4: mq4
+        rocketmq_node5: mq5
+        rocketmq_node6: mq6
+      tags: rocketmq
+
+
+# 安装 rocketmq-console
+- hosts:
+    - mon1
+    - mon2
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 安装 rocketmq-console
+    - name: Install rocketmq-console
+      import_role:
+        name: rocketmq-console
+      vars:
+        rocketmq_console_host1: mon1
+        rocketmq_console_host2: mon2
+        rocketmq_namesrvAddr: "mq1:9876;mq2:9876;mq3:9876"
+      tags: rocketmq-console
+
+
+#  harbor
+- hosts: dh
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 安装 harbor
+    - name: Install harbor
+      import_role:
+        name: harbor
+      tags: harbor
+
+
+# k8s 禁用 swap
+- hosts: k8s
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 禁用 swap
+    - name: Disable swap
+      shell: |
+        swapoff -a
+        sysctl -w vm.swappiness=0
+        sed -ri '/^[^#]*swap/s@^@#@' /etc/fstab
+      tags: swap
+
+
+# minio 安装
+- hosts: minio
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 禁用 swap
+    - name: Disable swap
+      shell: |
+        swapoff -a
+        sysctl -w vm.swappiness=0
+        sed -ri '/^[^#]*swap/s@^@#@' /etc/fstab
+      tags: swap
+    # 安装 minio
+    - name: Install minio
+      import_role:
+        name: minio
+      tags: minio
+
+
+# 运维服务器
+- hosts: mon
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 安装 python3
+    - name: Install python3
+      import_role:
+        name: python3
+      tags: python
+    # 安装 maven
+    - name: Install maven
+      import_role:
+        name: maven
+      tags: maven
+    # 安装 node
+    - name: Install node
+      import_role:
+        name: node
+      tags: node
+
+
+# 重启所有服务器
+- hosts: all
+
+  gather_facts: false
+  any_errors_fatal: true
+  become: true
+
+  tasks:
+    # 重启服务器
+    - name: Reboot the machine
+      reboot:
+        reboot_timeout: 10
+      tags: reboot

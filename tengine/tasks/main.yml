@@ -1,0 +1,78 @@
+---
+- name: Copy nginx file to agent.
+  unarchive:
+    src: "{{ nginx_file }}"
+    dest: /tmp
+    creates: "/tmp/tengine-{{ nginx_version }}"
+
+- name: Ensure gcc packages are installed.
+  package:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - gcc
+    - pcre-devel
+    - zlib-devel
+    - openssl
+    - openssl-devel
+
+- name: Build an install nginx.
+  shell: "cd /tmp/tengine-{{ nginx_version }} && {{ item }}"
+  with_items:
+    - "{{ nginx_configure_command }}"
+    - make && make install
+
+- name: Create nginx group.
+  group: name={{ nginx_group }}
+
+- name: Create nginx user.
+  user: name={{ nginx_user }} group={{ nginx_group }} shell=/sbin/nologin createhome=no
+
+- name: Set the owner of the nginx directory.
+  file: path={{ nginx_home_path }} state=directory owner={{ nginx_user }} group={{ nginx_group }} recurse=yes
+
+- name: Remove nginx software.
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /tmp/tengine-{{ nginx_version }}
+    - /tmp/{{ nginx_file }}
+
+- name: Create conf.d ssl tmp
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+  with_items:
+      - "{{ nginx_home_path }}/conf/conf.d"
+      - "{{ nginx_home_path }}/conf/ssl"
+      - "{{ nginx_home_path }}/tmp"
+
+- name: Setup nginx.conf
+  template:
+    dest: "{{ nginx_conf_file_path }}"
+    src: nginx.conf.j2
+    mode: 0644
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+
+- name: Set nginx.conf systemd
+  template:
+    dest: "/lib/systemd/system/nginx.service"
+    src: nginx.service.j2
+    mode: 0644
+
+- name: Enable nginx
+  shell: "systemctl enable nginx.service"
+
+- name: Start nginx
+  shell: "systemctl start nginx.service"
+
+- name: Setup Nginx logrotate conf file.
+  template:
+    dest: "/etc/logrotate.d/nginx"
+    src: nginx.logrotate.j2
+    mode: 0644

@@ -1,0 +1,27 @@
+---
+
+redis_user: "redis"
+redis_group: "redis"
+
+# redis 服务器数量 3 或者 6
+redis_nodes: 6
+
+# redis 版本
+redis_version: "5.0.12"
+# redis 安装包
+redis_file: "redis-{{ redis_version }}.tar.gz"
+# 安装目录
+software_install_path: "/usr/local"
+# redis home 目录
+redis_home_path: "{{ software_install_path }}/redis-{{ redis_version }}"
+# profile 目录
+etc_profile_path: "/etc/profile.d"
+
+# redis.conf.j2
+# 日志目录
+redis_logfile: "{{ redis_home_path }}/redis-server.log"
+redis_dbfilename: "dump.rdb"
+redis_dbdir: "{{ redis_home_path }}/data"
+# redis 密码
+redis_masterauth: "redis@1234"
+redis_requirepass: "redis@1234"

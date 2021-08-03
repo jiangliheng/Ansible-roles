@@ -1,0 +1,154 @@
+---
+- name: Set authorized key
+  authorized_key:
+    user: "{{ ansible_ssh_user }}"
+    state: present
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  tags: authorized
+
+- name: Set DNS
+  copy:
+   src: "etc/resolv.conf"
+   dest: /etc/
+   mode: '0644'
+  when: set_dns | bool
+  tags: resolv
+
+- name: Disable SELinux
+  selinux:
+    state: disabled
+
+- name: Disable Firewalld
+  systemd:
+    name: firewalld
+    state: stopped
+    enabled: no
+
+- name: Set limits.conf file
+  copy:
+    src: etc/security/limits.conf
+    dest: /etc/security/limits.conf
+    mode: '0644'
+
+- name: Check that the 20-nproc.conf exists
+  stat:
+    path: /etc/security/limits.d/20-nproc.conf
+  register: file_status
+
+- name: Set 20-nproc.conf
+  replace:
+    path: /etc/security/limits.d/20-nproc.conf
+    regexp: '^\*'
+    replace: '#*'
+  when: file_status.stat.exists == True
+
+- name: Set system.conf file
+  copy:
+    src: etc/systemd/system.conf
+    dest: /etc/systemd/system.conf
+    mode: '0644'
+
+- name: Set current limit
+  shell: |
+    ulimit -u 655350
+    ulimit -n 655350
+    ulimit -c unlimited
+    ulimit -m unlimited
+
+- name: Copy sysctl.conf config
+  copy:
+    src: etc/sysctl.conf
+    dest: /etc/sysctl.conf
+    mode: '0644'
+  tags: sysctl
+
+# 解决报错：sysctl: cannot stat /proc/sys/net/netfilter/nf_conntrack_max: No such file or directory
+- name: Modprobe ip_conntrack
+  shell: modprobe ip_conntrack
+  tags: sysctl
+
+- name: Set sysctl
+  shell: sysctl -p
+  tags: sysctl
+
+- name: Set base.sh and alias.sh
+  copy:
+    src: "etc/profile.d/{{ item }}"
+    dest: /etc/profile.d/
+    mode: '0644'
+  with_items:
+      - base.sh
+      - alias.sh
+  tags: profiled
+
+- name: Set vimrc
+  copy:
+    src: "etc/vimrc"
+    dest: /etc/
+    mode: '0644'
+  tags: vim
+
+- name: Add IP address of all hosts to all hosts
+  lineinfile:
+    dest: /etc/hosts
+    regexp: '.*{{ item }}$'
+    line: "{{ hostvars[item].ansible_ssh_host }} {{item}}"
+    state: present
+  when: hostvars[item].ansible_ssh_host is defined
+  with_items: "{{ groups.all }}"
+  tags: hosts
+
+- name: Install kde-l10n-Chinese
+  yum:
+    name: kde-l10n-Chinese
+    state: latest
+
+- name: Set locale zh_CN.UTF-8
+  shell: echo 'LANG="zh_CN.UTF-8"' > /etc/locale.conf
+
+- name: Install the 'Development tools' package group
+  yum:
+    name: "@Development tools"
+
+- name: Install base packages
+  yum:
+    name:
+      - vim-enhanced
+      - wget
+      - zip
+      - unzip
+      - gzip
+      - which
+      - telnet
+      - curl
+      - bash-completion
+      - rsync
+      - lrzsz
+      - cmake
+      - zlib
+      - glibc
+      - tmux
+      - tree
+      - jq
+      - git
+      - mlocate
+      - openssl
+      - logrotate
+      - yum-utils
+      - yum-cron
+      - net-tools
+      - htop
+      - iftop
+      - iotop
+      - nmon
+      - nmap
+      - vnstat
+      - mtr
+      - strace
+      - python-pip
+      - python-virtualenv
+      - colordiff
+      - dnstop
+      - autojump
+      - sshpass
+    state: latest

@@ -1,0 +1,6 @@
+---
+java_default_path: /usr/java
+work_dir: /tmp
+etc_profile_path: /etc/profile.d
+oracle_jdk_version: jdk-8u202-linux-x64.tar.gz
+java_dir: jdk1.8.0_202

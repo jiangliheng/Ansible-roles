@@ -1,0 +1,23 @@
+---
+# 删除默认用户
+remove_users:
+  - look
+  - manage
+  - ops
+  - dev
+  - app
+
+# 运维用户 ops
+ops_user: ops
+ops_group: ops
+ops_user_passwd: "{{ 'ops@1234' | password_hash('sha512') }}"
+
+# 开发用户 dev
+dev_user: dev
+dev_group: dev
+dev_user_passwd: "{{ 'dev@1234' | password_hash('sha512') }}"
+
+# 开发用户 app
+app_user: app
+app_group: app
+app_user_passwd: "{{ 'app@1234' | password_hash('sha512') }}"

@@ -1,0 +1,43 @@
+---
+- name: Uninstall old versions
+  yum:
+    name: ['docker', 'docker-client', 'docker-client-latest', 'docker-common', 'docker-latest', 'docker-latest-logrotate', 'docker-logrotate',
+'docker-engine']
+    state: absent
+
+- name: Install docker repo
+  shell: "yum-config-manager --add-repo {{ docker_repo }}"
+
+- name: Install base packages
+  yum:
+    name: ['lvm2', 'yum-utils', 'bash-completion', 'device-mapper-persistent-data']
+    state: latest
+
+- name: Create Docker config directory
+  file:
+    path: /etc/docker
+    state: directory
+
+- name: Configure docker startup parameters
+  template:
+    src: daemon.json.j2
+    dest: "/etc/docker/daemon.json"
+  tags: docker-daemon
+
+- name: Install docker-ce
+  yum:
+    name: ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-compose']
+    state: latest
+
+- name: Set docker completion
+  copy:
+    src: /usr/share/bash-completion/completions/docker
+    dest: /etc/bash_completion.d/docker
+    remote_src: yes
+
+- name: Set docker is started and enabled at boot
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+  when: docker_start | bool

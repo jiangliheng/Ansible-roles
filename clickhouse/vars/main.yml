@@ -1,0 +1,12 @@
+---
+
+# clickhouse 版本号
+clickhouse_version: 20.9.3.45-2
+
+# 安装用户、用户组、用户密码
+clickhouse_user: "clickhouse"
+clickhouse_group: "clickhouse"
+clickhouse_user_passwd: "{{ 'clickhouse@1234' | password_hash('sha512') }}"
+
+# 临时目录
+work_path: /tmp

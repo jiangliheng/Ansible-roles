@@ -1,0 +1,57 @@
+---
+- name: Create minio group
+  group:
+    name: "{{ minio_group }}"
+
+- name: Create minio user
+  user:
+    name: "{{ minio_user }}"
+    group: "{{ minio_group }}"
+    password: "{{ minio_user_passwd }}"
+
+- name: Mkdir data dir
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ minio_user }}"
+    group: "{{ minio_group }}"
+    mode: 0755
+  with_items:
+      - "{{ minio_data_dirs }}"
+      - "{{ minio_config_dir }}"
+
+- name: Copy minio
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin
+    mode: 0755
+  with_items:
+      - mc
+      - minio
+
+- name: Shell autocompletion
+  shell: mc --autocompletion
+
+- name: Set mino.sh
+  template:
+    dest: "/home/{{ minio_user }}/minio.sh"
+    src: minio.sh.j2
+    mode: 0755
+    owner: "{{ minio_user }}"
+    group: "{{ minio_group }}"
+
+- name: Set mino.service systemd
+  template:
+    dest: "/lib/systemd/system/minio.service"
+    src: minio.service.j2
+    mode: 0644
+
+- name: Enable mino
+  shell: "systemctl enable minio.service"
+
+- name: Start mino
+  shell: "systemctl start minio.service"
+
+- name: Create default host
+  shell: |
+    mc config host add {{ minio_default_host }} http://{{ ansible_ssh_host }}:{{ minio_port }} {{ minio_access_key }} {{ minio_secret_key }}

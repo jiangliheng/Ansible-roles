@@ -1,0 +1,11 @@
+---
+# aliyun docker repo
+docker_repo: http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+
+# docker 启动并配置开机启动
+docker_start: true
+
+# daemon.json.j2
+docker_data_root: /var/lib/docker
+docker_registry_mirrors: ["https://docker.mirrors.ustc.edu.cn/", "http://hub-mirror.c.163.com", "https://registry.docker-cn.com"]
+docker_insecure_registries: ["https://harbor.xxxx.com"]

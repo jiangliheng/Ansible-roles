@@ -1,0 +1,19 @@
+# 系统通用文件忽略 #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# 软件包不上传
+######################
+**/files/*.tar.gz
+**/files/*.xz
+**/files/*.zip
+**/files/*.jar
+**/files/*.rpm
+**/files/*.tgz

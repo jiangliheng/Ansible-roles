@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# minio 启停脚本
+
+# 使用方法
+usage() {
+   echo "Usage: sh $0 {start|stop|status|restart}"
+   exit 1
+}
+
+
+# 判断参数
+if [ $# -lt 1 ]; then
+    usage
+    exit 1;
+fi
+
+# 认证信息
+export MINIO_ACCESS_KEY={{ minio_access_key }}
+export MINIO_SECRET_KEY={{ minio_secret_key }}
+
+
+start() {
+    echo "Starting minio..."
+    # 启动
+    nohup {{ minio_start_cmd }} >/dev/null 2>&1 &
+    # 启动失败
+    if [ $? -ne 0 ]; then
+      echo "Failed to stop minio."
+      exit 1
+    fi
+
+    echo "Started minio."
+}
+
+stop() {
+    echo "Stopping minio..."
+    PID=$(ps -ef | grep 'minio server' | grep -v grep | awk '{print $2}')
+    if [ "X${PID}" != "X" ]; then
+        kill -9 ${PID}
+        if [ $? -ne 0 ]; then
+          echo "Failed to kill minio $pid."
+          exit 1
+        fi
+    fi
+
+    echo "stopped minio."
+}
+
+status() {
+    PID=$(ps -ef | grep 'minio server' | grep -v grep | awk '{print $2}')
+    if [ "X${PID}" = "X" ]; then
+        echo "minio is not running."
+        exit 1
+    else
+        echo "minio is running PID: (${PID})."
+        exit 0
+    fi
+}
+
+restart() {
+    stop
+    start
+    sleep 5
+    status
+}
+
+
+case "$1" in
+        'start')
+            start
+            ;;
+
+        'stop')
+            stop
+            ;;
+
+        'status')
+            status
+            ;;
+
+        'restart')
+            restart
+            ;;
+
+        *)
+            usage
+            exit 1
+            ;;
+esac
+exit 0

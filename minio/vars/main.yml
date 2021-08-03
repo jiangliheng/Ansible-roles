@@ -1,0 +1,19 @@
+---
+
+minio_user: minio
+minio_group: minio
+minio_user_passwd: "{{ 'minio@1234' | password_hash('sha512') }}"
+
+# 服务器磁盘
+minio_data_dirs:
+  - /minio/data1
+  - /minio/data2
+
+minio_config_dir: /etc/minio
+
+minio_access_key: admin
+minio_secret_key: Minio@1234
+
+minio_port: 9090
+minio_start_cmd: minio server --address "{{ ansible_ssh_host }}:{{ minio_port }}" http://minio{1...3}/minio/data{1...2}
+minio_default_host: test

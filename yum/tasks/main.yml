@@ -1,0 +1,34 @@
+---
+- name: Mkdir yum repo bak
+  file:
+    state: directory
+    path: /etc/yum.repos.d_bak
+
+- name: Bakup yum repos count
+  shell: ls -1 /etc/yum.repos.d/ | wc -l
+  ignore_errors: true
+  register: bakup_yum_repos_count
+
+- name: Backup yum repo
+  shell: mv /etc/yum.repos.d/* /etc/yum.repos.d_bak
+  when: bakup_yum_repos_count.stdout|int > 0
+
+- name: Set aliyun centos-7 and epel-7  yum repo
+  copy:
+    src: "etc/yum.repos.d/{{ item }}"
+    dest: /etc/yum.repos.d/
+    mode: '0644'
+  with_items:
+      - Centos-7.repo
+      - epel-7.repo
+
+- name: Yum clean & makecache
+  shell: |
+    yum clean all
+    yum makecache
+
+- name: Yum update
+  shell: |
+    rpm --rebuilddb
+    yum -y update --skip-broken
+  tags: yum-update

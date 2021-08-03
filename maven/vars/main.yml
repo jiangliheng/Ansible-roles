@@ -1,0 +1,9 @@
+---
+
+maven_version: 3.8.1
+maven_file: apache-maven-{{ maven_version }}-bin.tar.gz
+software_install_path: "/usr/local"
+etc_profile_path: "/etc/profile.d"
+
+# maven_home.sh
+maven_home_path: "{{ software_install_path }}/apache-maven-{{ maven_version }}"

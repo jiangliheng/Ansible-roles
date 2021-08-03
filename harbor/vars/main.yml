@@ -1,0 +1,21 @@
+---
+
+software_files_path: "/usr/local"
+
+harbor_version: v2.2.2
+harbor_file: "harbor-online-installer-{{ harbor_version }}.tgz"
+
+harbor_home: "{{ software_files_path }}/harbor"
+harbor_hostname: "harbor.xxxx.com"
+
+harbor_ssl_home: "{{ harbor_home}}/cert"
+harbor_ssl_certificate: "{{ harbor_ssl_home }}/{{ harbor_hostname }}.crt"
+harbor_ssl_private_key: "{{ harbor_ssl_home }}/{{ harbor_hostname }}.key"
+harbor_external_url: https://harbor.xxxx.com
+
+harbor_admin_password: 8XHeH5bC6i6bTttZ
+harbor_db_password: TbZC8gBss5A7DedM
+
+# daemon.json.j2
+docker_registry_mirrors: ["https://docker.mirrors.ustc.edu.cn/", "http://hub-mirror.c.163.com", "https://registry.docker-cn.com"]
+docker_insecure_registries: ["https://harbor.xxxx.com"]

@@ -1,0 +1,23 @@
+---
+
+nacos_user: "nacos"
+nacos_group: "nacos"
+nacos_user_passwd: "{{ 'nacos@1234' | password_hash('sha512') }}"
+
+nacos_file: "nacos-server-1.1.4.tar.gz"
+
+software_install_path: "/home/{{ nacos_user }}"
+nacos_home_path: "{{ software_install_path }}/nacos"
+
+# cluster.conf
+nacos_cluster_ip: |
+  12.3.34.3:8848
+
+# create user 'nacos'@'%'IDENTIFIED BY 'nacos@1234';
+# GRANT all privileges ON nacos.* to 'nacos'@'%';
+# flush privileges;
+# application.properties
+db_num: 1
+db_url_0: "jdbc:mysql://12.3.35.21:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true"
+db_user: "nacos"
+db_password: "nacos@1234"

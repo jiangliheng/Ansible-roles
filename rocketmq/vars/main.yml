@@ -1,0 +1,45 @@
+---
+# rocketmq 版本
+rocketmq_version: "4.8.0"
+rocketmq_file: "rocketmq-all-{{ rocketmq_version }}-bin-release.zip"
+
+software_install_path: "/home/{{ rocketmq_user }}"
+rocketmq_home_path: "{{ software_install_path }}/rocketmq-all-{{ rocketmq_version }}-bin-release"
+etc_profile_path: /etc/profile.d
+
+rocketmq_conf_path: "{{ rocketmq_home_path }}/conf"
+rocketmq_logs_path: "{{ rocketmq_home_path }}/logs"
+
+rocketmq_user: mq
+rocketmq_user_passwd: "{{ 'mq@1234' | password_hash('sha512') }}"
+
+# rocketmq 服务器节点数量，3 或者 6
+rocketmq_nodes: 6
+
+# 3节点 服务器
+# rocketmq_node1: mq1
+# rocketmq_node2: mq2
+# rocketmq_node3: mq3
+# rocketmq_node4: mq3
+# rocketmq_node5: mq2
+# rocketmq_node6: mq1
+
+# 6节点 服务器
+rocketmq_node1: mq1
+rocketmq_node2: mq2
+rocketmq_node3: mq3
+rocketmq_node4: mq4
+rocketmq_node5: mq5
+rocketmq_node6: mq6
+
+# broker 配置
+rocketmq_brokerClusterName: "rocketmq-cluster"
+rocketmq_storePathRootDir: "{{ rocketmq_home_path }}/data/store"
+rocketmq_storePathRootDir_slave: "{{ rocketmq_home_path }}/data/store-slave"
+rocketmq_namesrvAddr: "{{ rocketmq_node1 }}:9876;{{ rocketmq_node2 }}:9876;{{ rocketmq_node3 }}:9876"
+rocketmq_brokerIP1_a: "{{ rocketmq_node1 }}"
+rocketmq_brokerIP1_b: "{{ rocketmq_node2 }}"
+rocketmq_brokerIP1_c: "{{ rocketmq_node3 }}"
+rocketmq_brokerIP1_as: "{{ rocketmq_node4 }}"
+rocketmq_brokerIP1_cs: "{{ rocketmq_node5 }}"
+rocketmq_brokerIP1_bs: "{{ rocketmq_node6 }}"

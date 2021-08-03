@@ -1,0 +1,40 @@
+---
+- name: Create clickhouse group
+  group: name={{ clickhouse_group }}
+
+- name: Create clickhouse user
+  user: name={{ clickhouse_user }} group={{ clickhouse_group }} password={{ clickhouse_user_passwd }} shell=/bin/bash state=present home=/home/{{ clickhouse_user }} createhome=yes
+
+- name: Copy clickhouse file to agent
+  copy:
+    src: "{{ item }}"
+    dest: "{{ work_path }}"
+    mode: 0644
+    owner: "{{ clickhouse_user }}"
+    group: "{{ clickhouse_group }}"
+  with_items:
+    - clickhouse-client-20.9.3.45-2.noarch.rpm
+    - clickhouse-server-20.9.3.45-2.noarch.rpm
+    - clickhouse-common-static-20.9.3.45-2.x86_64.rpm
+
+# rpm -ivh --force --nodeps clickhouse-common-static-20.9.3.45-2.x86_64.rpm
+# rpm -ivh --force --nodeps clickhouse-client-20.9.3.45-2.noarch.rpm
+# rpm -ivh --force --nodeps clickhouse-server-20.9.3.45-2.noarch.rpm
+- name: Copy clickhouse file to agent
+  shell: "rpm -ivh --force --nodeps {{ work_path }}/{{ item }}"
+  with_items:
+    - clickhouse-common-static-20.9.3.45-2.x86_64.rpm
+    - clickhouse-client-20.9.3.45-2.noarch.rpm
+    - clickhouse-server-20.9.3.45-2.noarch.rpm
+
+- name: Mkdir /data/clickhouse
+  shell: |
+    sudo mkdir -p ${{ clickhouse_data_path }}
+    sudo mkdir -p /var/log/clickhouse-server/
+    sudo chown -R clickhouse:clickhouse /data/clickhouse/ /var/log/clickhouse-server/
+
+- name: Set config.xml
+  shell: 'sudo sed -i "s#\/var\/lib#\/data\/clickhouse#g" /etc/clickhouse-server/config.xml'
+
+- name: Start clickhouse
+  shell: "sudo -u clickhouse clickhouse-server -C /etc/clickhouse-server/config.xml --daemon"

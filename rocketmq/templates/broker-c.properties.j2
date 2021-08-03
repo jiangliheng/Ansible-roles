@@ -1,0 +1,43 @@
+# 所属集群名字
+brokerClusterName={{ rocketmq_brokerClusterName }}
+
+# nameServer地址，分号分割
+namesrvAddr={{ rocketmq_namesrvAddr }}
+
+# broker名字，注意此处不同的配置文件填写的不一样
+brokerName=broker-c
+
+# 本机ip地址，默认系统自动识别，但是某些多网卡机器会存在识别错误的情况，这种情况下可以人工配置。
+brokerIP1={{ rocketmq_brokerIP1_c }}
+
+# 0 表示 Master，>0 表示 Slave
+brokerId=0
+
+# Broker 对外服务的监听端口
+listenPort=10931
+
+# 删除文件时间点，默认凌晨4点。24小时制，单位小时
+deleteWhen=04
+
+# 文件保留时间，默认 72 小时。根据业务情况调整
+fileReservedTime=48
+
+# Broker 的角色
+# - ASYNC_MASTER 异步复制Master
+# - SYNC_MASTER 同步双写Master
+# - SLAVE
+brokerRole=ASYNC_MASTER
+
+# 刷盘方式
+# - ASYNC_FLUSH 异步刷盘
+# - SYNC_FLUSH 同步刷盘
+flushDiskType=ASYNC_FLUSH
+
+# 服务端处理消息发送线程池数量
+sendMessageThreadPoolNums=64
+
+# 消息存储到commitlog文件时获取锁类型，如果为true使用ReentrantLock否则使用自旋锁
+useReentrantLockWhenPutMessage=true
+
+#存储总路径
+storePathRootDir={{ rocketmq_storePathRootDir }}

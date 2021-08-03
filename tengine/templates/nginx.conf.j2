@@ -1,0 +1,88 @@
+user  {{ nginx_user }};
+
+error_log  {{ nginx_error_log }};
+pid        {{ nginx_pid_file }};
+
+worker_processes  {{ nginx_worker_processes }};
+
+events {
+  worker_connections  {{ nginx_worker_connections }};
+  multi_accept {{ nginx_multi_accept }};
+}
+
+http {
+  include       {{ nginx_mime_file_path }};
+  default_type  application/octet-stream;
+
+  # 隐藏Nginx后端服务X-Powered-By头
+  proxy_hide_header X-Powered-By;
+  proxy_hide_header Server;
+
+  sendfile        {{ nginx_sendfile }};
+
+  keepalive_timeout  {{ nginx_keepalive_timeout }};
+  server_tokens off;
+  fastcgi_intercept_errors on;
+
+  client_max_body_size {{ nginx_client_max_body_size }};
+  proxy_connect_timeout 60s;
+  proxy_send_timeout 60s;
+  proxy_read_timeout 60s;
+  proxy_buffer_size  128k;
+  proxy_buffers   32 32k;
+  proxy_busy_buffers_size 128k;
+
+  gzip on;
+  gzip_min_length 1k;
+  gzip_buffers 4 16k;
+  gzip_comp_level 2;
+  gzip_types text/plain application/x-javascript text/css application/xml text/javascript application/javascript application/x-httpd-php image/jpeg image/gif image/png;
+  gzip_vary off;
+  gzip_disable "MSIE [1-6]\.";
+
+  log_format json '{"@timestamp":"$time_iso8601",'
+                   '"host":"$server_addr",'
+                   '"clientip":"$remote_addr",'
+                   '"x_forwarded_for":"$http_x_forwarded_for",'
+                   '"size":$body_bytes_sent,'
+                   '"responsetime":$request_time,'
+                   '"upstreamtime":"$upstream_response_time",'
+                   '"upstreamhost":"$upstream_addr",'
+                   '"http_host":"$host",'
+                   '"url":"$uri",'
+                   '"referer":"$http_referer",'
+                   '"agent":"$http_user_agent",'
+                   '"status":"$status"}';
+
+  access_log  {{ nginx_access_log }};
+
+  server {
+    listen 80;
+#    listen 443 ssl;
+    server_name {{ nginx_server_name }};
+#    ssl_certificate ssl/{{ nginx_server_name }}.crt;
+#    ssl_certificate_key ssl/{{ nginx_server_name }}.key;
+#    ssl_session_timeout 5m;
+#    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+#    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;
+#    ssl_prefer_server_ciphers on;
+
+    error_page 404  /404.html;
+    location = /404.html {
+      root /usr/local/nginx/html;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+      root  {{ nginx_home_path }}/html;
+    }
+
+    error_page 400  /400.html;
+    location = /400.html {
+        alias {{ nginx_home_path }}/html/400.html;
+    }
+
+  }
+
+  include conf.d/*.conf;
+}

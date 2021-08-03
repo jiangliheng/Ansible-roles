@@ -1,0 +1,52 @@
+---
+- name: Remove users
+  user:
+    name: "{{ item }}"
+    state: absent
+    remove: yes
+  with_items: "{{ remove_users }}"
+
+- name: Remove groups
+  group:
+    name: "{{ item }}"
+    state: absent
+  with_items: "{{ remove_users }}"
+
+- name: Create ops group
+  group:
+    name: "{{ ops_group }}"
+
+- name: Create ops user
+  user:
+    name: "{{ ops_user }}"
+    group: "{{ ops_group }}"
+    password: "{{ ops_user_passwd }}"
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: .ssh/id_rsa
+
+- name: Config ops sudoer
+  shell: 'echo "ops ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ops'
+
+- name: Create dev group
+  group:
+    name: "{{ dev_group }}"
+
+- name: Create dev user
+  user:
+    name: "{{ dev_user }}"
+    group: "{{ dev_group }}"
+    password: "{{ dev_user_passwd }}"
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: .ssh/id_rsa
+
+- name: Create app group
+  group:
+    name: "{{ app_group }}"
+
+- name: Create app user
+  user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    password: "{{ app_user_passwd }}"

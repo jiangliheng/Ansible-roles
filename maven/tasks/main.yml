@@ -1,0 +1,22 @@
+---
+
+- name: Copy maven to remote host /tmp.
+  copy: "src={{ maven_file }} dest=/tmp"
+
+- name: Unzip maven.
+  unarchive: "src=/tmp/{{ maven_file }} dest={{ software_install_path }} owner=root group=root copy=no"
+
+- name: Set MVN_HOME.
+  template:
+    src: maven_home.sh.j2
+    dest: "{{ etc_profile_path }}/maven_home.sh"
+    mode: 0644
+
+- name: Source {{ etc_profile_path }}/maven_home.sh.
+  shell: "source {{ etc_profile_path }}/maven_home.sh"
+
+- name: mvn version
+  shell: mvn -version
+
+- name: Remove files.
+  file: "path=/tmp/{{ maven_file }} state=absent"

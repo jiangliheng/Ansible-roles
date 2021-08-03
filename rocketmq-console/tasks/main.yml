@@ -1,0 +1,73 @@
+---
+- name: Create mq group
+  group: name={{ rocketmq_user }}
+
+- name: Create mq user
+  user: name={{ rocketmq_user }} group={{ rocketmq_user }} password={{ rocketmq_user_passwd }} shell=/bin/bash state=present home=/home/{{ rocketmq_user }} createhome=yes
+
+- name: Install tmux
+  yum:
+    name: tmux
+    state: latest
+
+- name: Mkdir rocketmq-console home
+  file:
+    path: "{{ rocketmq_console_home_path }}"
+    state: directory
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+    mode: 0755
+  when: inventory_hostname in [rocketmq_console_host1,rocketmq_console_host2]
+
+- name: Copy rocketmq-console file to agent
+  copy:
+    src: "{{ rocketmq_console_file }}"
+    dest: "{{ rocketmq_console_home_path }}"
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+  when: inventory_hostname in [rocketmq_console_host1,rocketmq_console_host2]
+
+- name: Mkdir rocketmq-console data
+  file:
+    path: "{{ rocketmq_console_home_path }}/{{ item }}"
+    state: directory
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+    mode: 0755
+  with_items:
+    - data
+    - logs
+  when: inventory_hostname in [rocketmq_console_host1,rocketmq_console_host2]
+
+- name: Ensure rocketmq broker is configured
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ rocketmq_console_home_path }}/data/{{ item }}"
+    mode: 0644
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+  with_items:
+    - users.properties
+  when: inventory_hostname in [rocketmq_console_host1,rocketmq_console_host2]
+
+- name: Ensure start_console.sh is configured
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ rocketmq_console_home_path }}/{{ item }}"
+    mode: 0755
+    owner: "{{ rocketmq_user }}"
+    group: "{{ rocketmq_user }}"
+  with_items:
+    - restart-mq-console.sh
+  when: inventory_hostname in [rocketmq_console_host1,rocketmq_console_host2]
+
+- name: Start rocketmq-console
+  shell: |
+      tmux kill-session -t console
+      cd {{ rocketmq_console_home_path }}
+      tmux new -s console -d
+      tmux send -t console "nohup sh restart-mq-console.sh >/dev/null 2>&1 &" ENTER
+  become: true
+  become_method: su
+  become_user: "{{ rocketmq_user }}"
+  when: inventory_hostname in [rocketmq_console_host1,rocketmq_console_host2]

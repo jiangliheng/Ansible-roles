@@ -1,0 +1,39 @@
+---
+
+es_version: "7.4.0"
+
+software_install_path: "/home/{{ es_user }}"
+es_file: "elasticsearch-{{ es_version }}.tar.gz"
+es_plugin_sql: "elasticsearch-sql-{{ es_version }}.zip"
+
+es_home_path: "{{ software_install_path }}/{{ es_file | replace('.tar.gz','') }}"
+
+es_user: "es"
+es_group: "es"
+es_user_passwd: "{{ 'es@1234' | password_hash('sha512') }}"
+
+es_max_map_count: "655360"
+es_max_open_files: "655350"
+es_max_processes: "655350"
+
+es_pid_dir: "{{ es_home_path }}"
+es_log_dir: "{{ es_home_path }}/logs"
+es_conf_dir: "{{ es_home_path }}/config"
+es_data_dir: "{{ es_home_path }}/data"
+es_plugins_dir: "{{ es_home_path }}/plugins"
+
+## elasticsearch.yml
+# es集群名称
+es_cluster_name: "es-cluster"
+es_node_name: "{{ hostname | quote }}"
+
+es_http_host: "{{ ansible_ssh_host }}"
+es_http_port: "9200"
+
+es_unicast_hosts: "['es1', 'es2' , 'es3']"
+# es7.x 之后新增的配置，初始化一个新的集群时需要此配置来选举 master
+es_initial_master_nodes: "['es1', 'es2' , 'es3']"
+
+# jvm.options
+es_heap_ms: "4g"
+es_heap_mx: "4g"

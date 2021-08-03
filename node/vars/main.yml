@@ -1,0 +1,8 @@
+---
+
+node_file: node-v10.15.0-linux-x64.tar.xz
+software_install_path: /usr/local
+etc_profile_path: /etc/profile.d
+
+# node_home.sh
+node_home_path: "{{ software_install_path }}/node-v10.15.0-linux-x64"
